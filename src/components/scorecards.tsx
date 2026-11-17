@@ -33,7 +33,7 @@ function ScoreMark({ h, blank }: { h: HoleResult; blank?: boolean }) {
   );
 }
 
-function Nine({ holes, label, color }: { holes: HoleResult[]; label: string; color: string }) {
+function Nine({ holes, label }: { holes: HoleResult[]; label: string }) {
   const played = holes.filter((h) => h.gross !== null);
   const gross = played.reduce((s, h) => s + (h.gross ?? 0), 0);
   const par = holes.reduce((s, h) => s + h.par, 0);
@@ -103,9 +103,9 @@ function TeamCard({ r, names }: { r: TeamResult; names: Map<number, string> }) {
           <span className="block text-xs text-muted">to par</span>
         </p>
       </div>
-      <Nine holes={r.holes.slice(0, 9)} label="Out" color={r.team.color} />
+      <Nine holes={r.holes.slice(0, 9)} label="Out" />
       <div className="border-t-2 border-rime" />
-      <Nine holes={r.holes.slice(9)} label="In" color={r.team.color} />
+      <Nine holes={r.holes.slice(9)} label="In" />
       <p className="border-t border-rime px-4 py-2 text-sm">
         <span className="font-semibold">Total</span>{" "}
         {r.thru ? (

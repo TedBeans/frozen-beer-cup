@@ -16,7 +16,9 @@ interface HoleArt {
   trees?: boolean;
   native?: Pt[][];
   forest?: Pt[][];
-  paths?: Pt[][];
+  islands?: Ell[];
+  bridges?: Pt[][];
+  dots?: [number, number, number][];
   v?: number;
 }
 const ART = art as unknown as Record<string, HoleArt>;
@@ -35,22 +37,6 @@ function smooth(pts: Pt[], t = 0.5): string {
     d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`;
   }
   return d + "Z";
-}
-
-/** Open smooth curve through the points. */
-function smoothOpen(pts: Pt[], t = 0.5): string {
-  const n = pts.length;
-  let d = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 0; i < n - 1; i++) {
-    const p0 = pts[Math.max(i - 1, 0)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(i + 2, n - 1)];
-    const c1 = [p1[0] + ((p2[0] - p0[0]) * t) / 3, p1[1] + ((p2[1] - p0[1]) * t) / 3];
-    const c2 = [p2[0] - ((p3[0] - p1[0]) * t) / 3, p2[1] - ((p3[1] - p1[1]) * t) / 3];
-    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`;
-  }
-  return d;
 }
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -105,10 +91,13 @@ export function HoleMap({
   hole,
   replayKey,
   maxHeight = "72dvh",
+  compact = false,
 }: {
   hole: Hole;
   replayKey: number;
   maxHeight?: string;
+  /** Thumbnail mode: no yardage tags, ball or animation, and the map fills its box. */
+  compact?: boolean;
 }) {
   const a = ART[String(hole.n)];
   const uid = useId().replace(/:/g, "");
@@ -171,17 +160,18 @@ export function HoleMap({
     // Shots that fly over water get a "water carry" callout.
     const carries = line.slice(1).map((q, i) => {
       const p0 = line[i];
-      const over = Array.from({ length: 25 }, (_, k): Pt => [p0[0] + ((q[0] - p0[0]) * k) / 24, p0[1] + ((q[1] - p0[1]) * k) / 24]).filter((pt) =>
+      const over = Array.from({ length: 80 }, (_, k): Pt => [p0[0] + ((q[0] - p0[0]) * k) / 79, p0[1] + ((q[1] - p0[1]) * k) / 79]).filter((pt) =>
         a.water.some((w2) => pointInPoly(pt, w2)),
       );
-      return over.length > 3 ? ([(over[0][0] + over[over.length - 1][0]) / 2, (over[0][1] + over[over.length - 1][1]) / 2] as Pt) : null;
+      return over.length >= 1 ? ([(over[0][0] + over[over.length - 1][0]) / 2, (over[0][1] + over[over.length - 1][1]) / 2] as Pt) : null;
     });
+    for (const [x, y, r] of a.dots ?? []) canopy.push({ x, y, r });
     return { view, path, arcs, yards, trees, canopy, carries, segLens, total, line };
   }, [a, hole.n, hole.yards]);
 
   const dur = Math.max(2.6, Math.min(5.2, geo.total / 190));
   const cum = geo.segLens.reduce<number[]>((acc, l) => [...acc, (acc.at(-1) ?? 0) + l / geo.total], []);
-  const anim = !reduced;
+  const anim = !reduced && !compact;
   const [tee, ...rest] = geo.line;
   const green = rest.at(-1)!;
   const stagger = (i: number) => (anim ? { animationDelay: `${i * 90}ms` } : undefined);
@@ -194,7 +184,8 @@ export function HoleMap({
     <svg
       key={replayKey}
       viewBox={`${geo.view.x} ${geo.view.y} ${geo.view.w} ${geo.view.h}`}
-      className="hole-map block h-auto w-full"
+      className={compact ? "hole-map block h-full w-full" : "hole-map block h-auto w-full"}
+      preserveAspectRatio={compact ? "xMidYMid slice" : undefined}
       style={{ maxHeight, background: "var(--hole-rough)" }}
       role="img"
       aria-label={`Hole ${hole.n}, par ${hole.par}, ${hole.yards} yards. ${geo.yards
@@ -211,10 +202,6 @@ export function HoleMap({
             <path key={i} d={smooth(f)} />
           ))}
         </clipPath>
-        <radialGradient id={`${uid}-vig`} cx="50%" cy="50%" r="75%">
-          <stop offset="60%" stopColor="#000" stopOpacity="0" />
-          <stop offset="100%" stopColor="#000" stopOpacity="0.22" />
-        </radialGradient>
       </defs>
 
       {/* Trees sit under everything else so the corridor stays clear. */}
@@ -246,18 +233,18 @@ export function HoleMap({
         ))}
       </g>
 
-      <g aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
-        {(a.paths ?? []).map((p, i) => (
-          <g key={i}>
-            <path d={smoothOpen(p)} stroke="#000" strokeOpacity="0.22" strokeWidth="11" />
-            <path d={smoothOpen(p)} stroke="var(--hole-path, color-mix(in srgb, var(--hole-sand) 55%, #fff))" strokeWidth="7" />
-          </g>
-        ))}
-      </g>
-
       <g aria-hidden="true" className={anim ? "hm-rise" : undefined} style={stagger(1)}>
         {(a.sand ?? []).map((s, i) => (
-          <path key={i} d={smooth(s)} fill="var(--hole-sand)" />
+          <path key={i} d={smooth(s)} fill="var(--hole-sand)" stroke="#000" strokeOpacity="0.15" strokeWidth="2" />
+        ))}
+        {(a.islands ?? []).map((b, i) => (
+          <ellipse key={i} {...ellipse(b)} fill="var(--hole-native, color-mix(in srgb, var(--hole-sand) 55%, var(--hole-rough)))" />
+        ))}
+        {(a.bridges ?? []).map((b, i) => (
+          <g key={i} strokeLinecap="butt">
+            <line x1={b[0][0]} y1={b[0][1]} x2={b[1][0]} y2={b[1][1]} stroke="#000" strokeOpacity="0.3" strokeWidth="11" />
+            <line x1={b[0][0]} y1={b[0][1]} x2={b[1][0]} y2={b[1][1]} stroke="#b79562" strokeWidth="8" />
+          </g>
         ))}
         {polys(a.fairway).map((f, i) => (
           <path key={i} d={smooth(f)} fill="var(--hole-fairway)" />
@@ -313,7 +300,7 @@ export function HoleMap({
       ) : null}
 
       {/* Landing markers and yardages */}
-      {rest.map((p, i) => {
+      {(compact ? [] : rest).map((p, i) => {
         const isGreen = i === rest.length - 1;
         const delay = anim ? 0.9 + dur * cum[i] : 0;
         return (
@@ -324,7 +311,7 @@ export function HoleMap({
         );
       })}
 
-      {geo.carries.map((c, i) =>
+      {(compact ? [] : geo.carries).map((c, i) =>
         c ? (
           <g key={i} aria-hidden="true" className={anim ? "hm-pop" : undefined} style={{ animationDelay: `${0.9 + dur * (cum[i] - 0.15)}s`, transformOrigin: `${c[0]}px ${c[1]}px` }}>
             <rect x={c[0] - 62} y={c[1] - 15} width="124" height="30" rx="15" fill="var(--hole-ink)" opacity="0.92" />
@@ -355,7 +342,6 @@ export function HoleMap({
         )}
       </g>
 
-      <rect x={geo.view.x} y={geo.view.y} width={geo.view.w} height={geo.view.h} fill={`url(#${uid}-vig)`} pointerEvents="none" />
     </svg>
   );
 }

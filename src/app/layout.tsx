@@ -10,8 +10,7 @@ import "@fontsource-variable/archivo";
 import "@fontsource/alfa-slab-one";
 import "@fontsource/archivo-black";
 import "./globals.css";
-import { BottomNav } from "@/components/bottom-nav";
-import { ThemePicker } from "@/components/theme-picker";
+import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
   title: "Frozen Beer Cup",
@@ -36,9 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <ThemePicker />
-        <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-16">{children}</div>
-        <BottomNav />
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

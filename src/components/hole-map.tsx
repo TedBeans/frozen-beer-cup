@@ -14,6 +14,10 @@ interface HoleArt {
   water: Pt[][];
   sand?: Pt[][];
   trees?: boolean;
+  native?: Pt[][];
+  forest?: Pt[][];
+  paths?: Pt[][];
+  v?: number;
 }
 const ART = art as unknown as Record<string, HoleArt>;
 
@@ -31,6 +35,22 @@ function smooth(pts: Pt[], t = 0.5): string {
     d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`;
   }
   return d + "Z";
+}
+
+/** Open smooth curve through the points. */
+function smoothOpen(pts: Pt[], t = 0.5): string {
+  const n = pts.length;
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(i - 1, 0)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(i + 2, n - 1)];
+    const c1 = [p1[0] + ((p2[0] - p0[0]) * t) / 3, p1[1] + ((p2[1] - p0[1]) * t) / 3];
+    const c2 = [p2[0] - ((p3[0] - p1[0]) * t) / 3, p2[1] - ((p3[1] - p1[1]) * t) / 3];
+    d += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0]},${p2[1]}`;
+  }
+  return d;
 }
 
 const dist = (a: Pt, b: Pt) => Math.hypot(a[0] - b[0], a[1] - b[1]);
@@ -119,7 +139,7 @@ export function HoleMap({
 
     // Trees: scatter canopies outside the playable corridor, away from water.
     const trees: { x: number; y: number; r: number }[] = [];
-    if (a.trees) {
+    if (a.trees && !a.v) {
       const rnd = seeded(hole.n * 7919);
       for (let i = 0; i < 520 && trees.length < 150; i++) {
         const p: Pt = [view.x + rnd() * view.w, view.y + rnd() * view.h];
@@ -130,7 +150,33 @@ export function HoleMap({
         trees.push({ x: p[0], y: p[1], r: 9 + rnd() * 11 });
       }
     }
-    return { view, path, arcs, yards, trees, segLens, total, line };
+    // Forest polygons: dense canopy circles packed inside each outline.
+    const canopy: { x: number; y: number; r: number }[] = [];
+    if (a.forest) {
+      const rnd = seeded(hole.n * 104729);
+      for (const poly of a.forest) {
+        const xs = poly.map((q) => q[0]);
+        const ys = poly.map((q) => q[1]);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const want = Math.min(260, Math.round(((x1 - x0) * (y1 - y0)) / 520));
+        for (let i = 0; i < want * 4 && canopy.length < 900; i++) {
+          const q: Pt = [x0 + rnd() * (x1 - x0), y0 + rnd() * (y1 - y0)];
+          if (!pointInPoly(q, poly)) continue;
+          if (a.water.some((w2) => pointInPoly(q, w2))) continue;
+          if (fair.some((f) => pointInPoly(q, f))) continue;
+          canopy.push({ x: q[0], y: q[1], r: 9 + rnd() * 9 });
+        }
+      }
+    }
+    // Shots that fly over water get a "water carry" callout.
+    const carries = line.slice(1).map((q, i) => {
+      const p0 = line[i];
+      const over = Array.from({ length: 25 }, (_, k): Pt => [p0[0] + ((q[0] - p0[0]) * k) / 24, p0[1] + ((q[1] - p0[1]) * k) / 24]).filter((pt) =>
+        a.water.some((w2) => pointInPoly(pt, w2)),
+      );
+      return over.length > 3 ? ([(over[0][0] + over[over.length - 1][0]) / 2, (over[0][1] + over[over.length - 1][1]) / 2] as Pt) : null;
+    });
+    return { view, path, arcs, yards, trees, canopy, carries, segLens, total, line };
   }, [a, hole.n, hole.yards]);
 
   const dur = Math.max(2.6, Math.min(5.2, geo.total / 190));
@@ -153,7 +199,7 @@ export function HoleMap({
       role="img"
       aria-label={`Hole ${hole.n}, par ${hole.par}, ${hole.yards} yards. ${geo.yards
         .map((y, i) => (i === geo.yards.length - 1 ? `${y} yards in to the green` : `${y} yards to the landing area`))
-        .join(", then ")}.`}
+        .join(", then ")}.${geo.carries.some(Boolean) ? " One shot must carry water." : ""}`}
     >
       <defs>
         <pattern id={`${uid}-mow`} width="26" height="26" patternUnits="userSpaceOnUse" patternTransform="rotate(8)">
@@ -178,11 +224,33 @@ export function HoleMap({
         ))}
       </g>
 
+      {/* Native / waste areas: dry, tawny grass between rough and trees. */}
+      <g aria-hidden="true">
+        {(a.native ?? []).map((n, i) => (
+          <path key={i} d={smooth(n)} fill="var(--hole-native, color-mix(in srgb, var(--hole-sand) 55%, var(--hole-rough)))" />
+        ))}
+        {geo.canopy.map((t, i) => (
+          <g key={i}>
+            <circle cx={t.x + 2} cy={t.y + 3} r={t.r} fill="#000" opacity="0.18" />
+            <circle cx={t.x} cy={t.y} r={t.r} fill="var(--hole-tree)" opacity={0.8 + (i % 3) * 0.1} />
+          </g>
+        ))}
+      </g>
+
       <g aria-hidden="true" className={anim ? "hm-rise" : undefined} style={stagger(0)}>
         {a.water.map((w, i) => (
           <g key={i}>
             <path d={smooth(w)} fill="var(--hole-water)" />
             <path d={smooth(w)} fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" />
+          </g>
+        ))}
+      </g>
+
+      <g aria-hidden="true" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        {(a.paths ?? []).map((p, i) => (
+          <g key={i}>
+            <path d={smoothOpen(p)} stroke="#000" strokeOpacity="0.22" strokeWidth="11" />
+            <path d={smoothOpen(p)} stroke="var(--hole-path, color-mix(in srgb, var(--hole-sand) 55%, #fff))" strokeWidth="7" />
           </g>
         ))}
       </g>
@@ -211,6 +279,7 @@ export function HoleMap({
             <ellipse {...ellipse(b)} fill="none" stroke="#000" strokeOpacity="0.18" strokeWidth="2" />
           </g>
         ))}
+        <ellipse {...ellipse([a.green[0], a.green[1], a.green[2] * 1.28, a.green[3] * 1.22, a.green[4]])} fill="var(--hole-fairway)" />
         <ellipse {...ellipse(a.green)} fill="var(--hole-green)" />
         <ellipse {...ellipse(a.green)} fill="none" stroke="#fff" strokeOpacity="0.55" strokeWidth="3" />
         {/* Tee box */}
@@ -250,10 +319,21 @@ export function HoleMap({
         return (
           <g key={i} className={anim ? "hm-pop" : undefined} style={{ animationDelay: `${delay}s`, transformOrigin: `${p[0]}px ${p[1]}px` }}>
             {!isGreen ? <circle cx={p[0]} cy={p[1]} r="10" fill="none" stroke="var(--hole-line)" strokeWidth="3" /> : null}
-            <YardTag x={p[0]} y={p[1]} side={p[0] > geo.view.x + geo.view.w * 0.55 ? -1 : 1} text={`${geo.yards[i]}`} sub={isGreen ? "to green" : i === 0 ? "tee shot" : "layup"} offsetY={isGreen ? 40 : 0} />
+            <YardTag x={p[0]} y={p[1]} side={p[0] > geo.view.x + geo.view.w * 0.55 ? -1 : 1} text={`${geo.yards[i]}`} sub={isGreen ? "to green" : i === 0 ? "tee shot" : "layup"} offsetY={isGreen ? 62 : 0} />
           </g>
         );
       })}
+
+      {geo.carries.map((c, i) =>
+        c ? (
+          <g key={i} aria-hidden="true" className={anim ? "hm-pop" : undefined} style={{ animationDelay: `${0.9 + dur * (cum[i] - 0.15)}s`, transformOrigin: `${c[0]}px ${c[1]}px` }}>
+            <rect x={c[0] - 62} y={c[1] - 15} width="124" height="30" rx="15" fill="var(--hole-ink)" opacity="0.92" />
+            <text x={c[0]} y={c[1] + 6} textAnchor="middle" fontSize="15" fontWeight="800" fill="var(--color-glass)" style={{ fontFamily: "var(--font-display)" }}>
+              Carry the water
+            </text>
+          </g>
+        ) : null,
+      )}
 
       {/* Flag */}
       <g className={anim ? "hm-flag" : undefined} style={{ transformOrigin: `${green[0]}px ${green[1]}px` }} aria-hidden="true">

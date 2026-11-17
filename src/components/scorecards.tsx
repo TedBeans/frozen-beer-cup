@@ -145,10 +145,19 @@ export function Scorecards({
           <TeamCard key={r.team.id} r={r} names={names} />
         ))}
       </div>
-      <p className="mt-5 text-sm text-muted">
-        Circles beat par and squares are over par. Double marks are eagles or better and double bogeys
-        or worse.
-      </p>
+      <ul aria-label="Score symbols" className="mt-5 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-muted">
+        {[
+          ["Eagle", 2],
+          ["Birdie", 3],
+          ["Bogey", 5],
+          ["Double+", 6],
+        ].map(([label, gross]) => (
+          <li key={label} className="flex items-center gap-1.5">
+            <ScoreMark h={{ hole: 0, par: 4, yards: 0, si: 0, gross: gross as number, drivePlayerId: null, puttPlayerId: null }} color="var(--color-hops)" />
+            {label}
+          </li>
+        ))}
+      </ul>
     </>
   );
 }

@@ -5,6 +5,7 @@ import "./globals.css";
 import { AppShell } from "@/components/app-shell";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://frozen-beer-cup.vercel.app"),
   title: "Frozen Beer Cup",
   description: "Live scoring, leaderboard and stats for the Frozen Beer Cup golf scramble.",
 };

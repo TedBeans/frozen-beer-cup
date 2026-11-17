@@ -35,8 +35,8 @@ export function Logo({ size = 40, className }: { size?: number; className?: stri
 /** Green brand bar with a gold underline. Sits at the top of every page except the board and scoring. */
 export function BrandBar() {
   return (
-    <div className="-mx-4 mb-5 border-b-4 border-amber bg-ink px-4 py-2.5 text-frost">
-      <div className="flex items-center gap-3">
+    <div className="mb-5 border-b-4 border-amber bg-ink text-frost">
+      <div className="mx-auto flex max-w-2xl items-center gap-3 px-4 py-2.5">
         <Logo size={44} />
         <div className="leading-tight">
           <p className="font-display text-2xl font-extrabold">Frozen Beer Cup</p>

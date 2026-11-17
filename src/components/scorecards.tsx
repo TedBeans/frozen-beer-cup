@@ -6,7 +6,7 @@ import { useEventState } from "@/lib/use-event-state";
 import type { EventState } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
 
-function ScoreMark({ h, color }: { h: HoleResult; color: string }) {
+function ScoreMark({ h, color, blank }: { h: HoleResult; color: string; blank?: boolean }) {
   if (h.gross === null) return <span className="text-rime">·</span>;
   const kind = scoreKind(h.gross, h.par);
   const base = "inline-flex h-6 w-6 items-center justify-center text-sm font-bold";
@@ -26,7 +26,7 @@ function ScoreMark({ h, color }: { h: HoleResult; color: string }) {
       style={style}
       aria-label={`${h.gross} on a par ${h.par}`}
     >
-      {h.gross}
+      {blank ? null : h.gross}
     </span>
   );
 }
@@ -153,7 +153,7 @@ export function Scorecards({
           ["Double+", 6],
         ].map(([label, gross]) => (
           <li key={label} className="flex items-center gap-1.5">
-            <ScoreMark h={{ hole: 0, par: 4, yards: 0, si: 0, gross: gross as number, drivePlayerId: null, puttPlayerId: null }} color="var(--color-hops)" />
+            <ScoreMark h={{ hole: 0, par: 4, yards: 0, si: 0, gross: gross as number, drivePlayerId: null, puttPlayerId: null }} color="var(--color-hops)" blank />
             {label}
           </li>
         ))}

@@ -21,7 +21,7 @@ export function StandingsStrip({ board, onClick }: { board: TeamResult[]; onClic
               {r.rank ? <b className="mr-1 text-muted">{r.tied ? "T" : ""}{r.rank}</b> : null}
               {r.team.name}
             </span>
-            <span className="num text-2xl leading-none" style={{ color: r.thru > 0 && r.toPar < 0 ? r.team.color : undefined }}>
+            <span className="num text-2xl leading-none" style={{ color: r.thru > 0 && r.toPar < 0 ? "var(--color-flag)" : undefined }}>
               {r.thru > 0 ? formatToPar(r.toPar) : "–"}
             </span>
           </div>

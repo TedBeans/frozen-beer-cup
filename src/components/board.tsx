@@ -67,7 +67,7 @@ export function Board({ initial, initialError }: { initial: EventState | null; i
                   <RoundTrace holes={r.holes} color={r.team.color} />
                 </div>
               </div>
-              <span className="num text-[clamp(4rem,9vw,8rem)] leading-[0.8]" style={{ color: r.thru > 0 && r.toPar < 0 ? r.team.color : undefined }}>
+              <span className="num text-[clamp(4rem,9vw,8rem)] leading-[0.8]" style={{ color: r.thru > 0 && r.toPar < 0 ? "var(--color-flag)" : undefined }}>
                 {r.thru > 0 ? formatToPar(r.toPar) : "–"}
               </span>
             </li>

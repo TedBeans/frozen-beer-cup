@@ -185,7 +185,7 @@ export function Stats({
                       style={{
                         left: v >= 0 ? "50%" : `${50 - (Math.abs(v) / maxAbs) * 50}%`,
                         width: `${(Math.abs(v) / maxAbs) * 50}%`,
-                        background: v > 0 ? "#a4372b" : "#2b78a6",
+                        background: v > 0 ? "var(--color-ink)" : "var(--color-flag)",
                       }}
                     />
                   </span>

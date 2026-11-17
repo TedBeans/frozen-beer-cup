@@ -6,19 +6,21 @@ import { useEventState } from "@/lib/use-event-state";
 import type { EventState } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
 
-function ScoreMark({ h, color, blank }: { h: HoleResult; color: string; blank?: boolean }) {
+function ScoreMark({ h, blank }: { h: HoleResult; blank?: boolean }) {
   if (h.gross === null) return <span className="text-rime">·</span>;
   const kind = scoreKind(h.gross, h.par);
   const base = "inline-flex h-6 w-6 items-center justify-center text-sm font-bold";
+  const red = "var(--color-flag)";
+  const ink = "var(--color-ink)";
   const style =
     kind === "eagle"
-      ? { border: `2px solid ${color}`, outline: `1.5px solid ${color}`, outlineOffset: 1, color }
+      ? { border: `2px solid ${red}`, outline: `1.5px solid ${red}`, outlineOffset: 1, color: red }
       : kind === "birdie"
-        ? { border: `2px solid ${color}`, color }
+        ? { border: `2px solid ${red}`, color: red }
         : kind === "bogey"
-          ? { border: "2px solid #7b8f9c" }
+          ? { border: `2px solid ${ink}` }
           : kind === "double"
-            ? { border: "2px solid #a4372b", outline: "1.5px solid #a4372b", outlineOffset: 1, color: "#a4372b" }
+            ? { border: `2px solid ${ink}`, outline: `1.5px solid ${ink}`, outlineOffset: 1 }
             : {};
   return (
     <span
@@ -72,7 +74,7 @@ function Nine({ holes, label, color }: { holes: HoleResult[]; label: string; col
             </th>
             {holes.map((h) => (
               <td key={h.hole} className={th}>
-                <ScoreMark h={h} color={color} />
+                <ScoreMark h={h} />
               </td>
             ))}
             <td className={`${th} num text-xl`}>{played.length ? gross : "–"}</td>
@@ -153,7 +155,7 @@ export function Scorecards({
           ["Double+", 6],
         ].map(([label, gross]) => (
           <li key={label} className="flex items-center gap-1.5">
-            <ScoreMark h={{ hole: 0, par: 4, yards: 0, si: 0, gross: gross as number, drivePlayerId: null, puttPlayerId: null }} color="var(--color-hops)" blank />
+            <ScoreMark h={{ hole: 0, par: 4, yards: 0, si: 0, gross: gross as number, drivePlayerId: null, puttPlayerId: null }} blank />
             {label}
           </li>
         ))}

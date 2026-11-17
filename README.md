@@ -18,14 +18,16 @@ even teams (the admin page shows a weighted team handicap for balance).
 1. Push this repo to GitHub (done) and import it in Vercel as a new project.
 2. In the project, open **Storage**, add a **Neon Postgres** database and connect it to the project.
    Vercel sets `DATABASE_URL` for you.
-3. Under **Settings, Environment Variables**, add `SCORER_PIN` (and optionally `ADMIN_PIN`).
+3. Under **Settings, Environment Variables**, add `ADMIN_PIN` (any short PIN only you know).
 4. Redeploy. The first page load creates the tables and seeds the 2026 teams.
 
-Anyone with the link can watch. Entering scores or changing teams needs the PIN.
+Anyone with the link can watch. Each team has its own scorer PIN, shown on the **Admin** page
+(unlock it with `ADMIN_PIN`). A team's PIN only lets that team enter its own scores. The admin PIN
+can enter scores for any team. PINs are 4 digits by default, so treat them as casual security.
 
 ## Game day
 
-1. Each team's scorer opens the site, taps **Score**, enters the PIN once, and picks their team.
+1. Each team's scorer opens the site, taps **Score**, picks their team and enters that team's PIN once.
    The phone remembers both.
 2. After each hole, tap the score and **Save**. It jumps to the next hole.
 3. Fix a mistake by tapping the hole number and saving again, or **Clear**.
@@ -40,12 +42,12 @@ handicap, with everyone off a team so you can rebuild the teams. Past years stay
 
 ```bash
 npm install
-cp .env.example .env.local   # fill in DATABASE_URL and SCORER_PIN
+cp .env.example .env.local   # fill in DATABASE_URL and ADMIN_PIN
 npm run dev
 npm test                     # scoring logic and database queries (in-memory Postgres)
 ```
 
-With no `SCORER_PIN` set, writes only work in local development.
+With no `ADMIN_PIN` set, the admin page works without a PIN in local development only.
 
 ## Course data
 

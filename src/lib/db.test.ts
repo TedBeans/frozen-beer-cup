@@ -26,7 +26,7 @@ describe("database", () => {
     const state = await db.getEventState();
     expect(state?.event.year).toBe(2026);
     expect(state?.event.playedOn).toBe("2026-11-27");
-    expect(state?.teams.map((t) => t.name)).toEqual(["Amber", "Glacier", "Hops"]);
+    expect(state?.teams.map((t) => t.name)).toEqual(["Orange", "Blue", "Green"]);
     expect(state?.roster).toHaveLength(9);
     for (const t of state!.teams) {
       expect(state!.roster.filter((p) => p.teamId === t.id)).toHaveLength(3);
@@ -34,6 +34,26 @@ describe("database", () => {
     const jerry = state!.roster.find((p) => p.name === "Jerry Howe")!;
     expect(jerry.handicapIndex).toBe(5.5);
     expect(jerry.teamId).toBe(state!.teams[0].id);
+  });
+
+  it("gives every team its own 4-digit PIN and keeps PINs out of public state", async () => {
+    const state = (await db.getEventState())!;
+    const pins = await db.getTeamPins(state.event.id);
+    const values = state.teams.map((t) => pins[t.id]);
+    expect(values.every((p) => /^\d{4}$/.test(p))).toBe(true);
+    expect(new Set(values).size).toBe(state.teams.length);
+    expect(JSON.stringify(state)).not.toContain('"pin"');
+    for (const t of state.teams) expect(JSON.stringify(state)).not.toContain(`"${pins[t.id]}"`);
+  });
+
+  it("verifies a PIN only for its own team", async () => {
+    const state = (await db.getEventState())!;
+    const pins = await db.getTeamPins(state.event.id);
+    const [a, b] = state.teams;
+    expect(await db.verifyTeamPin(a.id, pins[a.id])).toBe(true);
+    expect(await db.verifyTeamPin(a.id, ` ${pins[a.id]} `)).toBe(true);
+    expect(await db.verifyTeamPin(b.id, pins[a.id])).toBe(false);
+    expect(await db.verifyTeamPin(a.id, "")).toBe(false);
   });
 
   it("seeds only once", async () => {
@@ -78,11 +98,13 @@ describe("database", () => {
     const nic = s.roster.find((p) => p.name === "Nic Delgado")!;
     await db.saveRoster(
       s.event.id,
-      [{ id: s.teams[0].id, name: "Amber Ale" }],
+      [{ id: s.teams[0].id, name: "Amber Ale", pin: "tee9" }],
       [{ playerId: nic.playerId, teamId: s.teams[0].id, handicapIndex: 16.2, source: "Estimate" }],
     );
     const after = (await db.getEventState())!;
     expect(after.teams[0].name).toBe("Amber Ale");
+    expect((await db.getTeamPins(s.event.id))[s.teams[0].id]).toBe("tee9");
+    expect(await db.verifyTeamPin(s.teams[0].id, "tee9")).toBe(true);
     const updated = after.roster.find((p) => p.playerId === nic.playerId)!;
     expect(updated).toMatchObject({ teamId: s.teams[0].id, handicapIndex: 16.2, source: "Estimate" });
   });
@@ -100,6 +122,8 @@ describe("database", () => {
     await db.addTeam(s.event.id, "Frost");
     after = (await db.getEventState())!;
     expect(after.teams.map((t) => t.name)).toContain("Frost");
+    const pins = await db.getTeamPins(s.event.id);
+    expect(after.teams.every((t) => pins[t.id])).toBe(true);
   });
 
   it("starts a new year with copied teams and handicaps, and keeps history", async () => {
@@ -111,6 +135,10 @@ describe("database", () => {
     expect(latest.roster.every((p) => p.teamId === null)).toBe(true);
     expect(latest.roster.find((p) => p.name === "Jerry Howe")!.handicapIndex).toBe(5.5);
     expect(latest.teams.length).toBeGreaterThanOrEqual(3);
+    const newPins = await db.getTeamPins(latest.event.id);
+    const nv = latest.teams.map((t) => newPins[t.id]);
+    expect(nv.every((p) => /^\d{4}$/.test(p))).toBe(true);
+    expect(new Set(nv).size).toBe(nv.length);
     const old = (await db.getEventState(2026))!;
     expect(old.event.year).toBe(2026);
     await expect(db.createEvent(2027, null)).rejects.toThrow(/already exists/);

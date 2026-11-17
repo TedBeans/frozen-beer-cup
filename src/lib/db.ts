@@ -1,5 +1,7 @@
+import { randomInt } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { CRYSTAL_SPRINGS_GOLD } from "./course";
+import { safeEqual } from "./safe-equal";
 import type {
   EventInfo,
   EventState,
@@ -30,9 +32,9 @@ const SEED = {
   title: "Frozen Beer Cup 2026",
   playedOn: "2026-11-27",
   teams: [
-    { name: "Amber", color: "#C97B0A" },
-    { name: "Glacier", color: "#2B78A6" },
-    { name: "Hops", color: "#4E7D2E" },
+    { name: "Orange", color: "#C97B0A" },
+    { name: "Blue", color: "#2B78A6" },
+    { name: "Green", color: "#4E7D2E" },
   ],
   players: [
     { name: "Jerry Howe", index: 5.5, source: "GHIN", team: 0 },
@@ -67,7 +69,8 @@ async function migrate(): Promise<void> {
     event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     color TEXT NOT NULL,
-    position INT NOT NULL
+    position INT NOT NULL,
+    pin TEXT
   )`;
   await sql`CREATE TABLE IF NOT EXISTS entries (
     event_id INT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
@@ -88,9 +91,25 @@ async function migrate(): Promise<void> {
     PRIMARY KEY (event_id, team_id, hole)
   )`;
 
-  const existing = (await sql`SELECT count(*)::int AS n FROM events`) as { n: number }[];
-  if (existing[0].n > 0) return;
+  // Databases created before team PINs existed: add the column, and move the first
+  // default team names (Amber, Glacier, Hops) to plain colors.
+  const hasPin = (await sql`SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'teams' AND column_name = 'pin'`) as unknown[];
+  if (hasPin.length === 0) {
+    await sql`ALTER TABLE teams ADD COLUMN pin TEXT`;
+    await sql`UPDATE teams SET name = CASE name
+        WHEN 'Amber' THEN 'Orange' WHEN 'Glacier' THEN 'Blue' WHEN 'Hops' THEN 'Green' ELSE name END
+      WHERE name IN ('Amber', 'Glacier', 'Hops')
+        AND event_id IN (SELECT id FROM events WHERE year = 2026)`;
+  }
 
+  const existing = (await sql`SELECT count(*)::int AS n FROM events`) as { n: number }[];
+  if (existing[0].n === 0) await seed();
+  await assignMissingPins();
+}
+
+async function seed(): Promise<void> {
+  const sql = db();
   const inserted = (await sql`
     INSERT INTO events (year, title, course_key, played_on)
     VALUES (${SEED.year}, ${SEED.title}, ${CRYSTAL_SPRINGS_GOLD.key}, ${SEED.playedOn})
@@ -116,6 +135,52 @@ async function migrate(): Promise<void> {
       INSERT INTO entries (event_id, player_id, team_id, handicap_index, source)
       VALUES (${eventId}, ${player[0].id}, ${teamIds[p.team]}, ${p.index}, ${p.source})`;
   }
+}
+
+function randomPin(): string {
+  return String(randomInt(0, 10000)).padStart(4, "0");
+}
+
+/** Give every team without a PIN a random 4-digit one, unique within its event. */
+async function assignMissingPins(): Promise<void> {
+  const sql = db();
+  const rows = (await sql`SELECT id, event_id, pin FROM teams ORDER BY id`) as {
+    id: number;
+    event_id: number;
+    pin: string | null;
+  }[];
+  const taken = new Map<number, Set<string>>();
+  for (const r of rows) {
+    if (r.pin) taken.set(r.event_id, (taken.get(r.event_id) ?? new Set()).add(r.pin.toLowerCase()));
+  }
+  for (const r of rows) {
+    if (r.pin) continue;
+    const used = taken.get(r.event_id) ?? new Set<string>();
+    let pin = randomPin();
+    while (used.has(pin)) pin = randomPin();
+    used.add(pin);
+    taken.set(r.event_id, used);
+    await sql`UPDATE teams SET pin = ${pin} WHERE id = ${r.id}`;
+  }
+}
+
+/** Team PINs, for the admin page only. They are never part of the public event state. */
+export async function getTeamPins(eventId: number): Promise<Record<number, string>> {
+  await ensureReady();
+  const sql = db();
+  const rows = (await sql`SELECT id, pin FROM teams WHERE event_id = ${eventId}`) as {
+    id: number;
+    pin: string | null;
+  }[];
+  return Object.fromEntries(rows.map((r) => [r.id, r.pin ?? ""]));
+}
+
+export async function verifyTeamPin(teamId: number, pin: string): Promise<boolean> {
+  await ensureReady();
+  const sql = db();
+  const rows = (await sql`SELECT pin FROM teams WHERE id = ${teamId}`) as { pin: string | null }[];
+  const stored = rows[0]?.pin;
+  return Boolean(stored) && safeEqual(pin.trim(), stored!);
 }
 
 export function ensureReady(): Promise<void> {
@@ -242,14 +307,15 @@ export async function clearScore(eventId: number, teamId: number, hole: number) 
 
 export async function saveRoster(
   eventId: number,
-  teams: { id: number; name: string }[],
+  teams: { id: number; name: string; pin?: string | null }[],
   entries: { playerId: number; teamId: number | null; handicapIndex: number; source: string }[],
 ) {
   await ensureReady();
   const sql = db();
   await sql.transaction([
     ...teams.map(
-      (t) => sql`UPDATE teams SET name = ${t.name} WHERE id = ${t.id} AND event_id = ${eventId}`,
+      (t) => sql`UPDATE teams SET name = ${t.name}, pin = COALESCE(${t.pin ?? null}::text, pin)
+        WHERE id = ${t.id} AND event_id = ${eventId}`,
     ),
     ...entries.map(
       (e) => sql`UPDATE entries
@@ -293,6 +359,7 @@ export async function addTeam(eventId: number, name: string) {
   const n = count[0].n;
   await sql`INSERT INTO teams (event_id, name, color, position)
             VALUES (${eventId}, ${name}, ${TEAM_COLORS[n % TEAM_COLORS.length]}, ${n + 1})`;
+  await assignMissingPins();
 }
 
 /** Start a new year: same course, same team names, everyone unassigned with last known handicap. */
@@ -314,6 +381,7 @@ export async function createEvent(year: number, playedOn: string | null) {
     await sql`INSERT INTO entries (event_id, player_id, team_id, handicap_index, source)
               SELECT ${eventId}, player_id, NULL, handicap_index, source
               FROM entries WHERE event_id = ${latest.id}`;
+    await assignMissingPins();
   }
   return eventId;
 }

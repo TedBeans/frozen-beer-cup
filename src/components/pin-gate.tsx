@@ -9,26 +9,31 @@ export function useMounted(): boolean {
   return useSyncExternalStore(noopSubscribe, () => true, () => false);
 }
 
+/** "admin" unlocks the admin page; a team target unlocks scoring for that one team. */
+export type PinTarget = "admin" | { teamId: number; name: string };
+
 export function PinGate({
-  scope,
+  target,
   children,
 }: {
-  scope: "score" | "admin";
+  target: PinTarget;
   children: (pin: string, lock: () => void) => ReactNode;
 }) {
   const mounted = useMounted();
   if (!mounted) return <p className="py-10 text-center text-sm text-muted">Loading…</p>;
-  return <Gate scope={scope}>{children}</Gate>;
+  return <Gate target={target}>{children}</Gate>;
 }
 
 function Gate({
-  scope,
+  target,
   children,
 }: {
-  scope: "score" | "admin";
+  target: PinTarget;
   children: (pin: string, lock: () => void) => ReactNode;
 }) {
-  const storageKey = `fbc-pin-${scope}`;
+  const isAdmin = target === "admin";
+  const teamName = isAdmin ? "" : target.name;
+  const storageKey = isAdmin ? "fbc-pin-admin" : `fbc-pin-team-${target.teamId}`;
   const [pin, setPin] = useState<string | null>(() => {
     try {
       return localStorage.getItem(storageKey);
@@ -56,7 +61,9 @@ function Gate({
       const res = await fetch("/api/pin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin: draft, scope }),
+        body: JSON.stringify(
+          isAdmin ? { pin: draft, scope: "admin" } : { pin: draft, teamId: target.teamId },
+        ),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -79,12 +86,12 @@ function Gate({
   return (
     <form onSubmit={submit} className="rounded-2xl border border-rime bg-glass p-5">
       <h1 className="font-display text-4xl font-extrabold">
-        {scope === "admin" ? "Admin PIN" : "Scorer PIN"}
+        {isAdmin ? "Admin PIN" : `${teamName} team PIN`}
       </h1>
       <p className="mt-1 text-sm text-muted">
-        {scope === "admin"
+        {isAdmin
           ? "Needed to change teams, handicaps and events."
-          : "Needed to enter scores. Anyone can watch the leaderboard without it."}
+          : `This PIN only unlocks scoring for ${teamName}. Anyone can watch the leaderboard without it.`}
       </p>
       <label htmlFor="pin" className="mt-4 block text-sm font-semibold">
         PIN

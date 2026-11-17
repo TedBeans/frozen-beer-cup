@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getCourse } from "@/lib/course";
 import { TEAM_WEIGHTS, courseHandicap, teamHandicap } from "@/lib/scoring";
 import { useEventState } from "@/lib/use-event-state";
@@ -9,7 +9,7 @@ import { HANDICAP_SOURCES, type EventState } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
 import { PinGate } from "./pin-gate";
 
-type Post = (body: Record<string, unknown>) => Promise<{ ok: boolean; error?: string }>;
+type Post = (body: Record<string, unknown>) => Promise<{ ok: boolean; error?: string; data?: Record<string, unknown> }>;
 
 export function AdminPanel({
   initial,
@@ -25,48 +25,84 @@ export function AdminPanel({
   return (
     <>
       <PageHeader state={state} title="Admin" />
-      <PinGate scope="admin">
-        {(pin, lock) => {
-          const post: Post = async (body) => {
-            try {
-              const res = await fetch("/api/admin", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pin, ...body }),
-              });
-              const data = await res.json().catch(() => ({}));
-              if (res.status === 401) {
-                lock();
-                return { ok: false, error: "Wrong PIN." };
-              }
-              if (!res.ok) return { ok: false, error: data.error ?? "Couldn't save." };
-              await refresh();
-              return { ok: true };
-            } catch {
-              return { ok: false, error: "No connection. Try again when you have signal." };
-            }
-          };
-          const sig =
-            state.event.id +
-            ":" +
-            state.teams.map((t) => t.id).join(",") +
-            ":" +
-            state.roster.map((p) => p.playerId).join(",");
-          return (
-            <div className="space-y-8">
-              <RosterEditor key={sig} state={state} post={post} />
-              <AddPlayer state={state} post={post} />
-              <EventSettings state={state} post={post} />
-              <p className="text-sm text-muted">
-                <Link href="/stats" className="font-semibold text-ink underline underline-offset-2">
-                  Back to stats
-                </Link>
-              </p>
-            </div>
-          );
-        }}
+      <PinGate target="admin">
+        {(pin, lock) => <AdminBody state={state} pin={pin} lock={lock} refresh={refresh} />}
       </PinGate>
     </>
+  );
+}
+
+function AdminBody({
+  state,
+  pin,
+  lock,
+  refresh,
+}: {
+  state: EventState;
+  pin: string;
+  lock: () => void;
+  refresh: () => Promise<void>;
+}) {
+  const [pins, setPins] = useState<Record<string, string> | null>(null);
+  const eventId = state.event.id;
+  const teamSig = state.teams.map((t) => t.id).join(",");
+
+  const post: Post = async (body) => {
+    try {
+      const res = await fetch("/api/admin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pin, ...body }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        lock();
+        return { ok: false, error: "Wrong PIN." };
+      }
+      if (!res.ok) return { ok: false, error: data.error ?? "Couldn't save." };
+      if (body.action !== "teamPins") await refresh();
+      return { ok: true, data };
+    } catch {
+      return { ok: false, error: "No connection. Try again when you have signal." };
+    }
+  };
+
+  async function loadPins() {
+    const r = await post({ action: "teamPins", eventId });
+    if (r.ok && r.data) setPins(r.data.pins as Record<string, string>);
+  }
+
+  // Reload PINs when the event or its teams change (new year, added team).
+  useEffect(() => {
+    const t = setTimeout(() => void loadPins(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, teamSig, pin]);
+
+  const sig =
+    eventId +
+    ":" +
+    teamSig +
+    ":" +
+    state.roster.map((p) => p.playerId).join(",") +
+    ":" +
+    JSON.stringify(pins);
+
+  return (
+    <div className="space-y-8">
+      {pins ? (
+        <RosterEditor key={sig} state={state} pins={pins} post={post} onSaved={loadPins} />
+      ) : (
+        <LoadingNote />
+      )}
+      <AddPlayer state={state} post={post} />
+      <EventSettings state={state} post={post} />
+      <p className="text-sm text-muted">
+        <Link href="/stats" className="font-semibold text-ink underline underline-offset-2">
+          Back to stats
+        </Link>
+      </p>
+    </div>
   );
 }
 
@@ -95,9 +131,21 @@ function Status({ status }: { status: { ok: boolean; text: string } | null }) {
 
 const field = "w-full rounded-xl border border-rime bg-white px-3 py-2.5 text-base";
 
-function RosterEditor({ state, post }: { state: EventState; post: Post }) {
+function RosterEditor({
+  state,
+  pins,
+  post,
+  onSaved,
+}: {
+  state: EventState;
+  pins: Record<string, string>;
+  post: Post;
+  onSaved: () => Promise<void>;
+}) {
   const course = getCourse(state.event.courseKey);
-  const [teams, setTeams] = useState(state.teams.map((t) => ({ id: t.id, name: t.name })));
+  const [teams, setTeams] = useState(
+    state.teams.map((t) => ({ id: t.id, name: t.name, pin: pins[t.id] ?? "" })),
+  );
   const [rows, setRows] = useState(
     state.roster.map((p) => ({
       playerId: p.playerId,
@@ -131,6 +179,10 @@ function RosterEditor({ state, post }: { state: EventState; post: Post }) {
         par, no strokes. Team handicap is {w1}% of the lowest course handicap, {w2}% of the middle and{" "}
         {w3}% of the highest, using {course.tee} tees ({course.slope} slope, {course.rating} rating).
       </p>
+      <p className="mt-2 text-sm text-muted">
+        Give each team its own scorer PIN (3 to 12 letters or numbers). A team&apos;s PIN only lets that team
+        enter its own scores. The admin PIN can enter scores for any team.
+      </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         {state.teams.map((t, i) => (
@@ -142,6 +194,17 @@ function RosterEditor({ state, post }: { state: EventState; post: Post }) {
               id={`team-${t.id}`}
               value={teams[i].name}
               onChange={(e) => setTeams((ts) => ts.map((x) => (x.id === t.id ? { ...x, name: e.target.value } : x)))}
+              className={`${field} mt-1`}
+            />
+            <label htmlFor={`pin-${t.id}`} className="mt-2 block text-sm font-semibold">
+              Scorer PIN
+            </label>
+            <input
+              id={`pin-${t.id}`}
+              value={teams[i].pin}
+              onChange={(e) => setTeams((ts) => ts.map((x) => (x.id === t.id ? { ...x, pin: e.target.value } : x)))}
+              autoComplete="off"
+              autoCapitalize="none"
               className={`${field} mt-1`}
             />
             <p className="mt-2 text-sm text-muted">
@@ -231,8 +294,8 @@ function RosterEditor({ state, post }: { state: EventState; post: Post }) {
         disabled={busy}
         onClick={() =>
           run(
-            () =>
-              post({
+            async () => {
+              const r = await post({
                 action: "saveRoster",
                 eventId: state.event.id,
                 teams,
@@ -242,7 +305,10 @@ function RosterEditor({ state, post }: { state: EventState; post: Post }) {
                   handicapIndex: r.handicap,
                   source: r.source,
                 })),
-              }),
+              });
+              if (r.ok) await onSaved();
+              return r;
+            },
             "Saved.",
           )
         }

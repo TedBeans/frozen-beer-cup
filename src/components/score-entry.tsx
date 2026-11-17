@@ -7,7 +7,7 @@ import { computeTeamResult, formatToPar, scoreName } from "@/lib/scoring";
 import { useEventState } from "@/lib/use-event-state";
 import type { EventState, TeamRow } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
-import { PinGate } from "./pin-gate";
+import { PinGate, useMounted } from "./pin-gate";
 
 export function ScoreEntry({
   initial,
@@ -17,30 +17,19 @@ export function ScoreEntry({
   initialError: string | null;
 }) {
   const { state, error, refresh } = useEventState(initial, { intervalMs: 10000 });
+  const mounted = useMounted();
   if (!state) {
     return error || initialError ? <SetupNotice error={error ?? initialError} /> : <LoadingNote />;
   }
   return (
     <>
       <PageHeader state={state} title="Enter scores" />
-      <PinGate scope="score">
-        {(pin, lock) => <Scorer state={state} pin={pin} lock={lock} refresh={refresh} />}
-      </PinGate>
+      {mounted ? <Scorer state={state} refresh={refresh} /> : <LoadingNote />}
     </>
   );
 }
 
-function Scorer({
-  state,
-  pin,
-  lock,
-  refresh,
-}: {
-  state: EventState;
-  pin: string;
-  lock: () => void;
-  refresh: () => Promise<void>;
-}) {
+function Scorer({ state, refresh }: { state: EventState; refresh: () => Promise<void> }) {
   const [teamId, setTeamId] = useState<number | null>(() => {
     try {
       const saved = Number(localStorage.getItem("fbc-team"));
@@ -82,10 +71,14 @@ function Scorer({
         })}
       </div>
       {team ? (
-        <TeamScorer key={team.id} state={state} team={team} pin={pin} lock={lock} refresh={refresh} />
+        <PinGate key={team.id} target={{ teamId: team.id, name: team.name }}>
+          {(pin, lock) => (
+            <TeamScorer state={state} team={team} pin={pin} lock={lock} refresh={refresh} />
+          )}
+        </PinGate>
       ) : (
         <p className="rounded-2xl border border-rime bg-glass p-5 text-sm text-muted">
-          Pick your team to start entering scores. The app remembers it on this phone.
+          Pick your team, then enter your team&apos;s PIN. The app remembers both on this phone.
         </p>
       )}
     </>

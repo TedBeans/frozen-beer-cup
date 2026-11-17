@@ -1,15 +1,16 @@
-import { checkPin } from "@/lib/auth";
+import { checkTeamPin } from "@/lib/auth";
 import { clearScore, saveScore } from "@/lib/db";
 import { fail, int, json, optionalInt } from "@/lib/api";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const auth = checkPin(body.pin, "score");
-    if (!auth.ok) return json({ error: auth.error }, auth.status);
-
     const eventId = int(body.eventId);
     const teamId = int(body.teamId);
+    if (teamId === null) return json({ error: "Missing team." }, 400);
+    const auth = await checkTeamPin(teamId, body.pin);
+    if (!auth.ok) return json({ error: auth.error }, auth.status);
+
     const hole = int(body.hole);
     const gross = int(body.gross);
     if (eventId === null || teamId === null || hole === null || gross === null) {
@@ -35,10 +36,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const body = await request.json();
-    const auth = checkPin(body.pin, "score");
-    if (!auth.ok) return json({ error: auth.error }, auth.status);
     const eventId = int(body.eventId);
     const teamId = int(body.teamId);
+    if (teamId === null) return json({ error: "Missing team." }, 400);
+    const auth = await checkTeamPin(teamId, body.pin);
+    if (!auth.ok) return json({ error: auth.error }, auth.status);
     const hole = int(body.hole);
     if (eventId === null || teamId === null || hole === null) {
       return json({ error: "Missing event, team or hole." }, 400);

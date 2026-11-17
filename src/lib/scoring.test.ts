@@ -128,30 +128,20 @@ describe("helpers", () => {
   });
 });
 
-import { shortNames } from "./format";
+import { playerNames } from "./format";
 
-describe("shortNames", () => {
-  const r = (playerId: number, name: string) => ({
-    playerId,
-    name,
-    teamId: null,
-    handicapIndex: 10,
-    source: "GHIN",
-  });
-  it("uses first names, then initials, then full names", () => {
-    const names = shortNames([
-      r(1, "Jerry Howe"),
-      r(2, "John Sieckhaus"),
-      r(3, "John Sansone"),
-      r(4, "Pat Lee"),
-      r(5, "Pat Long"),
-      r(6, "Pat Smith"),
-    ]);
-    expect(names.get(1)).toBe("Jerry");
+describe("playerNames", () => {
+  it("returns full first and last names", () => {
+    const r = (playerId: number, name: string) => ({
+      playerId,
+      name,
+      teamId: null,
+      handicapIndex: 10,
+      source: "GHIN",
+    });
+    const names = playerNames([r(1, "Jerry Howe"), r(2, "John Sieckhaus"), r(3, " John Sansone ")]);
+    expect(names.get(1)).toBe("Jerry Howe");
     expect(names.get(2)).toBe("John Sieckhaus");
     expect(names.get(3)).toBe("John Sansone");
-    expect(names.get(4)).toBe("Pat Lee");
-    expect(names.get(5)).toBe("Pat Long");
-    expect(names.get(6)).toBe("Pat S.");
   });
 });

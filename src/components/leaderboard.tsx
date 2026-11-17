@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { champion, computeLeaderboard, formatToPar } from "@/lib/scoring";
-import { shortNames, formatTime } from "@/lib/format";
+import { playerNames, formatTime } from "@/lib/format";
 import { useEventState } from "@/lib/use-event-state";
 import type { EventState } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
@@ -21,7 +21,7 @@ export function Leaderboard({
   }
 
   const board = computeLeaderboard(state);
-  const names = shortNames(state.roster);
+  const names = playerNames(state.roster);
   const winner = champion(state);
   const anyPlayed = board.some((r) => r.thru > 0);
 

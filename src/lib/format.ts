@@ -11,29 +11,9 @@ export function formatDate(playedOn: string | null): string | null {
   });
 }
 
-/**
- * Short, unambiguous labels: "Jerry", "John S." when two players share a first name,
- * or the full name when even the last initial matches.
- */
-export function shortNames(roster: RosterEntry[]): Map<number, string> {
-  const first = (n: string) => n.trim().split(/\s+/)[0];
-  const last = (n: string) => n.trim().split(/\s+/).slice(1).join(" ");
-  const initial = (n: string) => (last(n) ? `${first(n)} ${last(n)[0]}.` : first(n));
-  const count = (labels: string[]) => {
-    const m = new Map<string, number>();
-    for (const l of labels) m.set(l, (m.get(l) ?? 0) + 1);
-    return m;
-  };
-  const firsts = count(roster.map((p) => first(p.name)));
-  const initials = count(roster.map((p) => initial(p.name)));
-  const out = new Map<number, string>();
-  for (const p of roster) {
-    const f = first(p.name);
-    if ((firsts.get(f) ?? 0) <= 1) out.set(p.playerId, f);
-    else if ((initials.get(initial(p.name)) ?? 0) <= 1) out.set(p.playerId, initial(p.name));
-    else out.set(p.playerId, p.name.trim());
-  }
-  return out;
+/** Full first and last names, keyed by player id. */
+export function playerNames(roster: RosterEntry[]): Map<number, string> {
+  return new Map(roster.map((p) => [p.playerId, p.name.trim()]));
 }
 
 export function formatTime(d: Date): string {

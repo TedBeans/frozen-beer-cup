@@ -1,7 +1,7 @@
 "use client";
 
 import { computeLeaderboard, formatToPar, scoreKind, type HoleResult, type TeamResult } from "@/lib/scoring";
-import { formatTime, shortNames } from "@/lib/format";
+import { formatTime, playerNames } from "@/lib/format";
 import { useEventState } from "@/lib/use-event-state";
 import type { EventState } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
@@ -130,7 +130,7 @@ export function Scorecards({
     return error || initialError ? <SetupNotice error={error ?? initialError} /> : <LoadingNote />;
   }
   const board = computeLeaderboard(state);
-  const names = shortNames(state.roster);
+  const names = playerNames(state.roster);
   // Keep scorecards in team order so they don't jump around as the leaderboard changes.
   const ordered = [...board].sort((a, b) => a.team.position - b.team.position);
   return (

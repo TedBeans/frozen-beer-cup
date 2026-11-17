@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
-@theme inline {
+@theme {
   --color-frost: #e9f1f3;
   --color-glass: #f8fcfd;
   --color-ink: #10283a;
   --color-muted: #52697a;
   --color-rime: #c9dae0;
+  --color-white: #ffffff;
   --color-amber: #c97b0a;
   --color-glacier: #2b78a6;
   --color-hops: #4e7d2e;
@@ -14,12 +15,151 @@
   --font-sans: "Public Sans Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Hole map colors. Each theme sets its own. */
+:root {
+  --hole-rough: #5e8c4e;
+  --hole-tree: #3d6b3a;
+  --hole-fairway: #9ccb7a;
+  --hole-green: #c4e69b;
+  --hole-sand: #e3cfa0;
+  --hole-water: #6fa8c9;
+  --hole-line: #ffffff;
+  --hole-ink: #10283a;
+}
+
+/*
+ * Themes. The original look is the default; the others override the same tokens.
+ * Switch with data-theme on <html> (see ThemePicker).
+ */
+[data-theme="tournament"] {
+  --color-frost: #f1f5ef;
+  --color-glass: #ffffff;
+  --color-ink: #0b3d2a;
+  --color-muted: #4d6a5b;
+  --color-rime: #c8d8cc;
+  --color-amber: #c8a227;
+  --color-glacier: #1f6f8b;
+  --color-hops: #2f7d32;
+  --color-flag: #b3261e;
+  --font-display: "Source Serif 4 Variable", Georgia, serif;
+  --hole-rough: #4b7f55;
+  --hole-tree: #2f6b3f;
+  --hole-fairway: #8fc46b;
+  --hole-green: #b7e08a;
+  --hole-sand: #ecdca8;
+  --hole-water: #5a9bc5;
+  --hole-line: #ffffff;
+  --hole-ink: #0b3d2a;
+}
+
+[data-theme="night"] {
+  color-scheme: dark;
+  --color-frost: #0a1020;
+  --color-glass: #131c33;
+  --color-ink: #e9effa;
+  --color-muted: #94a5c4;
+  --color-rime: #28345a;
+  --color-white: #0d1527;
+  --color-amber: #ffb547;
+  --color-glacier: #4cc9f0;
+  --color-hops: #5be08a;
+  --color-flag: #ff7a7a;
+  --font-display: "Space Grotesk Variable", system-ui, sans-serif;
+  --hole-rough: #14233a;
+  --hole-tree: #0b1626;
+  --hole-fairway: #1e6b5c;
+  --hole-green: #3fd39a;
+  --hole-sand: #c9a66b;
+  --hole-water: #1b4f8f;
+  --hole-line: #4cc9f0;
+  --hole-ink: #e9effa;
+}
+
+[data-theme="pop"] {
+  --color-frost: #f1ecff;
+  --color-glass: #ffffff;
+  --color-ink: #20124d;
+  --color-muted: #625790;
+  --color-rime: #d5cbf5;
+  --color-amber: #f72585;
+  --color-glacier: #3a86ff;
+  --color-hops: #00a37f;
+  --color-flag: #d00000;
+  --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-sans: "Work Sans Variable", system-ui, sans-serif;
+  --radius-lg: 0.875rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+  --hole-rough: #6bcb77;
+  --hole-tree: #2e9e5b;
+  --hole-fairway: #a8f07a;
+  --hole-green: #d8ff8f;
+  --hole-sand: #ffd166;
+  --hole-water: #4cc9f0;
+  --hole-line: #20124d;
+  --hole-ink: #20124d;
+}
+
+[data-theme="stout"] {
+  color-scheme: dark;
+  --color-frost: #1b120c;
+  --color-glass: #2a1c13;
+  --color-ink: #f6e7c8;
+  --color-muted: #c4a97f;
+  --color-rime: #4a3424;
+  --color-white: #22160e;
+  --color-amber: #f2b134;
+  --color-glacier: #6fb3d9;
+  --color-hops: #9ccc5a;
+  --color-flag: #ff8a65;
+  --font-display: "Alfa Slab One", Georgia, serif;
+  --font-sans: "Work Sans Variable", system-ui, sans-serif;
+  --radius-lg: 0.375rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.75rem;
+  --hole-rough: #3b4a2a;
+  --hole-tree: #27351b;
+  --hole-fairway: #6a8c3a;
+  --hole-green: #a3c95b;
+  --hole-sand: #d9b36c;
+  --hole-water: #3a6e8f;
+  --hole-line: #f2b134;
+  --hole-ink: #f6e7c8;
+}
+
+[data-theme="swiss"] {
+  --color-frost: #f2f2ef;
+  --color-glass: #ffffff;
+  --color-ink: #0a0a0a;
+  --color-muted: #55554f;
+  --color-rime: #b9b9b3;
+  --color-amber: #e4002b;
+  --color-glacier: #1d4ed8;
+  --color-hops: #0f7b3f;
+  --color-flag: #e4002b;
+  --font-display: "Archivo Black", "Arial Black", sans-serif;
+  --font-sans: "Archivo Variable", system-ui, sans-serif;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --hole-rough: #ecece7;
+  --hole-tree: #a9bf9a;
+  --hole-fairway: #c4dbb3;
+  --hole-green: #6fb04f;
+  --hole-sand: #d8d0bc;
+  --hole-water: #a8c4e0;
+  --hole-line: #e4002b;
+  --hole-ink: #0a0a0a;
+}
+
 :root {
   color-scheme: light;
 }
 
 html {
   background: var(--color-frost);
+  font-synthesis-weight: none;
 }
 
 body {
@@ -56,5 +196,54 @@ input {
   }
   .press:active {
     transform: scale(0.97);
+  }
+}
+
+/* Hole map animation */
+@media (prefers-reduced-motion: no-preference) {
+  .hm-rise {
+    animation: hm-rise 600ms ease-out both;
+  }
+  .hm-draw {
+    stroke-dashoffset: 1;
+    animation: hm-draw linear forwards;
+  }
+  .hm-pop {
+    opacity: 0;
+    animation: hm-pop 420ms cubic-bezier(0.2, 1.4, 0.4, 1) forwards;
+  }
+  .hm-flag {
+    animation: hm-flag 2.4s ease-in-out infinite alternate;
+  }
+}
+@keyframes hm-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes hm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes hm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes hm-flag {
+  from {
+    transform: skewY(-2deg);
+  }
+  to {
+    transform: skewY(2deg);
   }
 }

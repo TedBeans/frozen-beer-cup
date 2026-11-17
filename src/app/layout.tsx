@@ -2,8 +2,16 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource/big-shoulders-display/600";
 import "@fontsource/big-shoulders-display/800";
 import "@fontsource-variable/public-sans";
+import "@fontsource-variable/source-serif-4";
+import "@fontsource-variable/space-grotesk";
+import "@fontsource-variable/bricolage-grotesque";
+import "@fontsource-variable/work-sans";
+import "@fontsource-variable/archivo";
+import "@fontsource/alfa-slab-one";
+import "@fontsource/archivo-black";
 import "./globals.css";
 import { BottomNav } from "@/components/bottom-nav";
+import { ThemePicker } from "@/components/theme-picker";
 
 export const metadata: Metadata = {
   title: "Frozen Beer Cup",
@@ -18,9 +26,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('fbc-theme');if(t)document.documentElement.dataset.theme=t}catch(e){}",
+          }}
+        />
+      </head>
       <body>
-        <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-6">{children}</div>
+        <ThemePicker />
+        <div className="mx-auto w-full max-w-2xl px-4 pb-28 pt-16">{children}</div>
         <BottomNav />
       </body>
     </html>

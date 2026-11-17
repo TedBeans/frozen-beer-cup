@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { CRYSTAL_SPRINGS_GOLD as course, coursePar } from "@/lib/course";
+import { HoleMap } from "./hole-map";
 
 export function HoleGuide() {
   const [n, setN] = useState(1);
+  const [replay, setReplay] = useState(0);
   const hole = course.holes[n - 1];
   const front = course.holes.slice(0, 9);
   const back = course.holes.slice(9);
@@ -26,7 +27,10 @@ export function HoleGuide() {
           <button
             key={h.n}
             type="button"
-            onClick={() => setN(h.n)}
+            onClick={() => {
+              setN(h.n);
+              setReplay((r) => r + 1);
+            }}
             aria-current={h.n === n ? "true" : undefined}
             className={`num h-11 w-11 shrink-0 rounded-lg border-2 text-xl ${
               h.n === n ? "border-ink bg-ink text-frost" : "border-rime text-muted"
@@ -53,19 +57,19 @@ export function HoleGuide() {
             ))}
           </dl>
         </div>
-        <Image
-          src={`/holes/hole-${String(hole.n).padStart(2, "0")}.webp`}
-          alt={`Aerial map of hole ${hole.n}`}
-          width={640}
-          height={1001}
-          unoptimized
-          priority
-          className="h-auto w-full"
-        />
-        <p className="px-4 py-2.5 text-xs text-muted">
-          Map from the 18Birdies hole view. The distance bubbles come from the saved screenshot, so go by the
-          yardage above, not them.
-        </p>
+        <HoleMap hole={hole} replayKey={n * 1000 + replay} />
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <p className="text-xs text-muted">
+            Drawn from satellite views of the course. Shot distances split the {hole.yards} yards along the line of play.
+          </p>
+          <button
+            type="button"
+            onClick={() => setReplay((r) => r + 1)}
+            className="press shrink-0 rounded-lg border border-ink px-3 py-1.5 text-sm font-bold"
+          >
+            Replay
+          </button>
+        </div>
       </section>
 
       <section className="mt-6">
@@ -82,7 +86,7 @@ export function HoleGuide() {
             </thead>
             <tbody>
               {[front, back].map((half, i) => (
-                <FragmentRows key={i} half={half} label={i === 0 ? "Out" : "In"} onPick={setN} sum={sum} />
+                <FragmentRows key={i} half={half} label={i === 0 ? "Out" : "In"} onPick={(x) => { setN(x); setReplay((r) => r + 1); }} sum={sum} />
               ))}
               <tr className="border-t-2 border-ink font-bold">
                 <td className="px-3 py-2">Total</td>

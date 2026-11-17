@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { getCourse } from "@/lib/course";
-import { shortNames } from "@/lib/format";
+import { playerNames } from "@/lib/format";
 import {
   champion,
   computeLeaderboard,
@@ -32,7 +32,7 @@ export function Stats({
   const selected = states.find((s) => s.event.year === year) ?? states[0];
   const course = getCourse(selected.event.courseKey);
   const board = computeLeaderboard(selected);
-  const names = shortNames(selected.roster);
+  const names = playerNames(selected.roster);
   const contrib = contributions(selected);
   const holeStats = holeAverages(scope === "year" ? [selected] : states, course)
     .filter((h) => h.avgToPar !== null)
@@ -263,7 +263,7 @@ function History({ states }: { states: EventState[] }) {
           <tbody>
             {winners.map(({ s, w }) => {
               const board = computeLeaderboard(s);
-              const names = shortNames(s.roster);
+              const names = playerNames(s.roster);
               const started = board.some((r) => r.thru > 0);
               return (
                 <tr key={s.event.year} className="border-b border-rime last:border-0">

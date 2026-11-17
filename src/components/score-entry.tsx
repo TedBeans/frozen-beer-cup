@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { getCourse } from "@/lib/course";
-import { shortNames } from "@/lib/format";
+import { playerNames } from "@/lib/format";
 import { computeTeamResult, formatToPar, scoreName } from "@/lib/scoring";
 import { useEventState } from "@/lib/use-event-state";
 import type { EventState, TeamRow } from "@/lib/types";
 import { LoadingNote, PageHeader, SetupNotice } from "./page-header";
+import { HoleMap } from "./hole-map";
 import { PinGate, useMounted } from "./pin-gate";
 
 export function ScoreEntry({
@@ -100,13 +101,20 @@ function TeamScorer({
 }) {
   const course = getCourse(state.event.courseKey);
   const result = computeTeamResult(team, state, course);
-  const names = shortNames(state.roster);
+  const names = playerNames(state.roster);
 
   const [hole, setHole] = useState(() => {
     const first = result.holes.find((h) => h.gross === null);
     return first ? first.hole : 18;
   });
   const [saving, setSaving] = useState(false);
+  const [showMap, setShowMap] = useState(() => {
+    try {
+      return localStorage.getItem("fbc-map") !== "off";
+    } catch {
+      return true;
+    }
+  });
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const hr = result.holes[hole - 1];
@@ -179,6 +187,29 @@ function TeamScorer({
           );
         })}
       </nav>
+
+      <section className="mb-4 overflow-hidden rounded-2xl border border-rime bg-glass">
+        <div className="flex items-center justify-between gap-3 px-4 py-2">
+          <p className="text-sm font-semibold">
+            Hole {hr.hole} <span className="font-normal text-muted">&middot; par {hr.par}, {hr.yards} yards</span>
+          </p>
+          <button
+            type="button"
+            aria-expanded={showMap}
+            onClick={() => {
+              const next = !showMap;
+              setShowMap(next);
+              try {
+                localStorage.setItem("fbc-map", next ? "on" : "off");
+              } catch {}
+            }}
+            className="press rounded-lg border border-rime px-3 py-1.5 text-sm font-bold"
+          >
+            {showMap ? "Hide map" : "Show map"}
+          </button>
+        </div>
+        {showMap ? <HoleMap hole={course.holes[hole - 1]} replayKey={hole} maxHeight="42dvh" /> : null}
+      </section>
 
       <HoleForm
         key={`${team.id}-${hole}`}

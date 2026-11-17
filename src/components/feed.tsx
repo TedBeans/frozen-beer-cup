@@ -49,7 +49,7 @@ export function Feed({ initial, initialError }: { initial: EventState | null; in
 
   return (
     <>
-      <div className="sticky top-0 z-10 -mx-4 mb-4 border-b border-rime bg-frost/95 px-4 pb-3 pt-14 backdrop-blur">
+      <div className="sticky top-0 z-10 -mx-4 mb-4 border-b border-rime bg-frost/95 px-4 pb-3 pt-3 backdrop-blur">
         <StandingsStrip board={board} />
       </div>
 

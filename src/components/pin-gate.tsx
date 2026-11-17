@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore, type ReactNode } from "react";
+import { Logo } from "./logo";
 
 const noopSubscribe = () => () => {};
 
@@ -85,6 +86,7 @@ function Gate({
 
   return (
     <form onSubmit={submit} className="rounded-2xl border border-rime bg-glass p-5">
+      <Logo size={56} className="mb-2" />
       <h1 className="font-display text-4xl font-extrabold">
         {isAdmin ? "Admin PIN" : `${teamName} team PIN`}
       </h1>

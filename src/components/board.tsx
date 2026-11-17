@@ -7,6 +7,7 @@ import { currentHole, holeLines, moments, race } from "@/lib/round";
 import { useEventState } from "@/lib/use-event-state";
 import type { EventState } from "@/lib/types";
 import { HoleMap } from "./hole-map";
+import { Logo } from "./logo";
 import { LoadingNote, SetupNotice } from "./page-header";
 import { RoundTrace } from "./round-trace";
 
@@ -31,8 +32,11 @@ export function Board({ initial, initialError }: { initial: EventState | null; i
 
   return (
     <div className="flex min-h-dvh flex-col bg-frost">
-      <header className="flex flex-wrap items-center justify-between gap-2 bg-ink px-6 py-3 text-frost">
-        <h1 className="font-display text-3xl font-extrabold">{state.event.title}</h1>
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b-4 border-amber bg-ink px-6 py-3 text-frost">
+        <div className="flex items-center gap-4">
+          <Logo size={64} />
+          <h1 className="font-display text-5xl font-extrabold">{state.event.title}</h1>
+        </div>
         <p className="text-base">
           {error ? "Offline, retrying" : allDone ? "Final" : `Live · thru ${maxThru} · next up: hole ${next}, par ${course.holes[next - 1].par}`}
         </p>

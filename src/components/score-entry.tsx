@@ -12,6 +12,7 @@ import { HoleMap } from "./hole-map";
 import { PinGate, useMounted } from "./pin-gate";
 import { RoundTrace } from "./round-trace";
 import { StandingsStrip } from "./standings-strip";
+import { Logo } from "./logo";
 
 export function ScoreEntry({
   initial,
@@ -51,7 +52,8 @@ function Scorer({ state, refresh }: { state: EventState; refresh: () => Promise<
   if (!team) {
     return (
       <>
-        <h1 className="font-display text-5xl font-extrabold leading-[0.95]">Who are you scoring for?</h1>
+        <Logo size={72} />
+        <h1 className="mt-3 font-display text-5xl font-extrabold leading-[0.95]">Who are you scoring for?</h1>
         <p className="mt-2 text-sm text-muted">
           Pick once. This phone opens straight to your team next time, and asks for your team&apos;s PIN.
         </p>

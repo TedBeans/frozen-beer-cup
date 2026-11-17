@@ -15,7 +15,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-20 border-t border-rime bg-glass/95 pb-[env(safe-area-inset-bottom)] backdrop-blur"
+      className="fixed inset-x-0 bottom-0 z-20 border-t-4 border-amber bg-ink pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="mx-auto flex max-w-2xl">
         {TABS.map((t) => {
@@ -26,7 +26,7 @@ export function BottomNav() {
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-semibold ${
-                  active ? "text-ink" : "text-muted"
+                  active ? "text-amber" : "text-frost/70"
                 }`}
               >
                 <svg

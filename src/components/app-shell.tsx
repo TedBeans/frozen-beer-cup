@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { BottomNav } from "./bottom-nav";
+import { BrandBar } from "./logo";
 
 /**
  * Chrome per screen: the clubhouse board runs edge to edge with no navigation,
@@ -14,7 +15,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const scoring = path.startsWith("/score");
   return (
     <>
-      <div className={`mx-auto w-full max-w-2xl px-4 pt-6 ${scoring ? "pb-32" : "pb-28"}`}>{children}</div>
+      <div className={`mx-auto w-full max-w-2xl px-4 ${scoring ? "pb-32 pt-4" : "pb-28"}`}>
+        {scoring ? null : <BrandBar />}
+        {children}
+      </div>
       {scoring ? null : <BottomNav />}
     </>
   );
